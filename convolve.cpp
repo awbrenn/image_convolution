@@ -25,7 +25,7 @@ OIIO_NAMESPACE_USING
 
 // Struct Declaration
 struct pixel {
-    unsigned char r, g, b, a;
+    float r, g, b, a;
 };
 
 // Global Variables
@@ -36,7 +36,24 @@ char *OUTPUT_FILE = NULL;
 int FILTER_SIZE;
 float **FILTER;
 
-// float VALUE_RANGE[2] = {}
+class Image {
+public:
+    int height;
+    int width;
+    pixel ** pixmap;
+
+    Image(int, int);
+};
+
+Image::Image(int x, int y) {
+    width = x;
+    height = y;
+    pixmap = new pixel*[height];
+    pixmap[0] = new pixel[width * height];
+
+    for (int i = 1; i < height; i++)
+        pixmap[i] = pixmap[i - 1] + width;
+}
 
 /* Handles errors
  * input	- message is printed to stdout, if kill is true end program
@@ -54,35 +71,33 @@ void handleError (string message, bool kill) {
  * output		- None
  * side effect	- saves pixel data from vector to PIXMAP
  */
-void convertVectorToPixelPointers (vector<unsigned char> vector_pixels, int channels) {
-    PIXMAP = new pixel*[IMAGE_HEIGHT];
-    PIXMAP[0] = new pixel[IMAGE_WIDTH * IMAGE_HEIGHT];
-
-    for (int i = 1; i < IMAGE_HEIGHT; i++)
-        PIXMAP[i] = PIXMAP[i - 1] + IMAGE_WIDTH;
+Image convertVectorToImage (vector<unsigned char> vector_pixels, int channels) {
+    Image image(IMAGE_WIDTH, IMAGE_HEIGHT);
 
     int i = 0;
     if (channels == 3) {
-        for (int row = IMAGE_HEIGHT-1; row >= 0; row--)
-            for (int col = 0; col < IMAGE_WIDTH; col++) {
-                PIXMAP[row][col].r = vector_pixels[i++];
-                PIXMAP[row][col].g = vector_pixels[i++];
-                PIXMAP[row][col].b = vector_pixels[i++];
-                PIXMAP[row][col].a = 255;
+        for (int row = image.height-1; row >= 0; row--)
+            for (int col = 0; col < image.width; col++) {
+                image.pixmap[row][col].r = (float) vector_pixels[i++] / 255.0;
+                image.pixmap[row][col].g = (float) vector_pixels[i++] / 255.0;
+                image.pixmap[row][col].b = (float) vector_pixels[i++] / 255.0;
+                image.pixmap[row][col].a = 1.0;
             }
     }
     else if (channels == 4) {
-        for (int row = IMAGE_HEIGHT-1; row >= 0; row--)
-            for (int col = 0; col < IMAGE_WIDTH; col++) {
-                PIXMAP[row][col].r = vector_pixels[i++];
-                PIXMAP[row][col].g = vector_pixels[i++];
-                PIXMAP[row][col].b = vector_pixels[i++];
-                PIXMAP[row][col].a = vector_pixels[i++];
+        for (int row = image.height-1; row >= 0; row--)
+            for (int col = 0; col < image.width; col++) {
+                image.pixmap[row][col].r = (float) vector_pixels[i++] / 255.0;
+                image.pixmap[row][col].g = (float) vector_pixels[i++] / 255.0;
+                image.pixmap[row][col].b = (float) vector_pixels[i++] / 255.0;
+                image.pixmap[row][col].a = (float) vector_pixels[i++] / 255.0;
             }
     }
 
     else
         handleError ("Could not convert image.. sorry", 1);
+
+    return image;
 }
 
 pixel ** flipImageVertical(pixel **pixmap_vertical_flip) {
@@ -98,7 +113,7 @@ pixel ** flipImageVertical(pixel **pixmap_vertical_flip) {
  * input		- the input file name
  * output		- None
  */
-void readImage (string filename) {
+Image readImage (string filename) {
     ImageInput *in = ImageInput::open(filename);
     if (!in)
         handleError("Could not open input file", true);
@@ -112,7 +127,9 @@ void readImage (string filename) {
     in->read_image (TypeDesc::UINT8, &pixels[0]);
     in->close ();
     delete in;
-    convertVectorToPixelPointers(pixels, channels);
+
+
+    return convertVectorToImage(pixels, channels);
 }
 
 /* Write image to specified file
@@ -148,8 +165,21 @@ void drawImage() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glRasterPos2i(0,0);
-    glDrawPixels(IMAGE_WIDTH, IMAGE_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, PIXMAP[0]);
+    glDrawPixels(IMAGE_WIDTH, IMAGE_HEIGHT, GL_RGBA, GL_FLOAT, PIXMAP[0]);
     glFlush();
+}
+
+Image convolveImage(Image copy_image) {
+    Image convolved_image(IMAGE_WIDTH, IMAGE_HEIGHT);
+
+    for (int row = 0; row < copy_image.height; row++)
+        for (int col = 0; col < copy_image.width; col++) {
+            convolved_image.pixmap[row][col] = copy_image.pixmap[row][col];
+        }
+
+    cout << "got here" << endl;
+    delete copy_image.pixmap;
+    return convolved_image;
 }
 
 /* Key press handler
@@ -171,6 +201,17 @@ void handleKey(unsigned char key, int x, int y) {
     else if (key == 'q' || key == 'Q') {
         cout << "\nProgram Terminated." << endl;
         exit(0);
+    }
+    else if (key == 'c') {
+        Image copy_image(IMAGE_WIDTH, IMAGE_HEIGHT);
+
+        delete copy_image.pixmap;
+        copy_image.pixmap = PIXMAP;
+
+
+        Image convolved_image = convolveImage(copy_image);
+        PIXMAP = convolved_image.pixmap;
+        drawImage();
     }
 }
 
@@ -277,6 +318,7 @@ int main(int argc, char *argv[]) {
         }
         cout << endl;
     }
-    readImage(argv[2]);
+    Image original_image = readImage(argv[2]);
+    PIXMAP = original_image.pixmap;
     openGlInit(argc, argv);
 }
