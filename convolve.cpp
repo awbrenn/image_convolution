@@ -292,14 +292,36 @@ void normalizeFilter() {
         }
     scale_factor = maximum(sum_of_posotive_values, sum_of_negative_values);
     if (scale_factor != 0)
-        scale_factor = 1 / scale_factor;
+        scale_factor = 1.0 / scale_factor;
     else
-        scale_factor = 1;
+        scale_factor = 1.0;
 
     for (int row = 0; row < FILTER_SIZE; row++)
         for (int col = 0; col < FILTER_SIZE; col++) {
             FILTER[row][col] = scale_factor * FILTER[row][col];
         }
+}
+
+void flipFilterXandY() {
+    float **temp_filter;
+
+    temp_filter = new float*[FILTER_SIZE];
+    temp_filter[0] = new float[FILTER_SIZE*FILTER_SIZE];
+
+    for (int i = 1; i < FILTER_SIZE; i++)
+        temp_filter[i] = temp_filter[i - 1] + FILTER_SIZE;
+
+    for (int row = 0; row < FILTER_SIZE; row++)
+        for (int col = 0; col < FILTER_SIZE; col++) {
+            temp_filter[row][col] = FILTER[(FILTER_SIZE-1)-row][(FILTER_SIZE-1)-col];
+        }
+
+    for (int row = 0; row < FILTER_SIZE; row++)
+        for (int col = 0; col < FILTER_SIZE; col++) {
+            FILTER[row][col] = temp_filter[row][col];
+        }
+    
+    delete temp_filter;
 }
 
 int main(int argc, char *argv[]) {
@@ -311,6 +333,7 @@ int main(int argc, char *argv[]) {
 
     readFilter(argv[1]);
     normalizeFilter();
+    flipFilterXandY();
 
     for (int row = 0; row < FILTER_SIZE; row++) {
         for (int col = 0; col < FILTER_SIZE; col++) {
@@ -318,7 +341,7 @@ int main(int argc, char *argv[]) {
         }
         cout << endl;
     }
-    Image original_image = readImage(argv[2]);
-    PIXMAP = original_image.pixmap;
-    openGlInit(argc, argv);
+//    Image original_image = readImage(argv[2]);
+//    PIXMAP = original_image.pixmap;
+//    openGlInit(argc, argv);
 }
