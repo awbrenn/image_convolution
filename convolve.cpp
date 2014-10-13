@@ -169,17 +169,89 @@ void drawImage() {
     glFlush();
 }
 
-Image convolveImage(Image copy_image) {
-    Image convolved_image(IMAGE_WIDTH, IMAGE_HEIGHT);
+void initializeFilterMap(float ** &filter_map) {
+    filter_map = new float*[FILTER_SIZE];
+    filter_map[0] = new float[FILTER_SIZE*FILTER_SIZE];
 
-    for (int row = 0; row < copy_image.height; row++)
-        for (int col = 0; col < copy_image.width; col++) {
-            convolved_image.pixmap[row][col] = copy_image.pixmap[row][col];
+    for (int i = 1; i < FILTER_SIZE; i++)
+        filter_map[i] = filter_map[i - 1] + FILTER_SIZE;
+}
+
+float sumFilterMapValues(float ** &filter) {
+    float sum_of_filter_values = 0.0;
+
+    for (int row = 0; row < FILTER_SIZE; row++)
+        for (int col = 0; col < FILTER_SIZE; col++) {
+            sum_of_filter_values += filter[row][col];
         }
 
-    cout << "got here" << endl;
-    delete copy_image.pixmap;
-    return convolved_image;
+    return sum_of_filter_values;
+}
+
+void calculateFilterMap(float ** &filter_map, int filter_range, pixel **pixmap, int pixmap_row, int pixmap_col, int channel) {
+    int offset_pixmap_row, offset_pixmap_col;
+
+    for (int filt_row = 0; filt_row < FILTER_SIZE; filt_row++) {
+        offset_pixmap_row = pixmap_row + filt_row - filter_range;
+        for (int filt_col = 0; filt_col < FILTER_SIZE; filt_col++) {
+            offset_pixmap_col = pixmap_col + filt_col - filter_range;
+
+            if (offset_pixmap_row < 0 or offset_pixmap_row >= IMAGE_HEIGHT or offset_pixmap_col < 0 or offset_pixmap_col >= IMAGE_WIDTH)
+                filter_map[filt_row][filt_col] = 0.0;
+            else {
+                if (channel == 0)
+                    filter_map[filt_row][filt_col] = pixmap[offset_pixmap_row][offset_pixmap_col].r * FILTER[filt_row][filt_col];
+                else if (channel == 1)
+                    filter_map[filt_row][filt_col] = pixmap[offset_pixmap_row][offset_pixmap_col].g * FILTER[filt_row][filt_col];
+                else if (channel == 2)
+                    filter_map[filt_row][filt_col] = pixmap[offset_pixmap_row][offset_pixmap_col].b * FILTER[filt_row][filt_col];
+            }
+        }
+    }
+}
+
+void convolveImage() {
+    pixel ** convolved_pixmap;
+
+    convolved_pixmap = new pixel *[IMAGE_HEIGHT];
+    convolved_pixmap[0] = new pixel[IMAGE_WIDTH * IMAGE_HEIGHT];
+
+    for (int i = 1; i < IMAGE_HEIGHT; i++)
+        convolved_pixmap[i] = convolved_pixmap[i - 1] + IMAGE_WIDTH;
+
+    int filter_range;
+    float **filter_map_red;
+    float **filter_map_green;
+    float **filter_map_blue;
+
+    filter_range = FILTER_SIZE / 2;
+
+    initializeFilterMap(filter_map_red);
+    initializeFilterMap(filter_map_green);
+    initializeFilterMap(filter_map_blue);
+
+    for (int row = 0; row < IMAGE_HEIGHT; row++) {
+        for (int col = 0; col < IMAGE_WIDTH; col++) {
+            calculateFilterMap(filter_map_red, filter_range, PIXMAP, row, col, 0);
+            calculateFilterMap(filter_map_green, filter_range, PIXMAP, row, col, 1);
+            calculateFilterMap(filter_map_blue, filter_range, PIXMAP, row, col, 2);
+
+            convolved_pixmap[row][col].r = sumFilterMapValues(filter_map_red);
+            convolved_pixmap[row][col].g = sumFilterMapValues(filter_map_green);
+            convolved_pixmap[row][col].b = sumFilterMapValues(filter_map_blue);
+            convolved_pixmap[row][col].a = 1.0;
+        }
+    }
+
+    for (int row = 0; row < IMAGE_HEIGHT; row++) {
+        for (int col = 0; col < IMAGE_WIDTH; col++) {
+            PIXMAP[row][col].r = convolved_pixmap[row][col].r;
+            PIXMAP[row][col].g = convolved_pixmap[row][col].g;
+            PIXMAP[row][col].b = convolved_pixmap[row][col].b;
+            PIXMAP[row][col].a = convolved_pixmap[row][col].a;
+        }
+    }
+    free(convolved_pixmap);
 }
 
 /* Key press handler
@@ -203,14 +275,12 @@ void handleKey(unsigned char key, int x, int y) {
         exit(0);
     }
     else if (key == 'c') {
-        Image copy_image(IMAGE_WIDTH, IMAGE_HEIGHT);
+//        Image copy_image(IMAGE_WIDTH, IMAGE_HEIGHT);
+//
+//        delete copy_image.pixmap;
+//        copy_image.pixmap = PIXMAP;
 
-        delete copy_image.pixmap;
-        copy_image.pixmap = PIXMAP;
-
-
-        Image convolved_image = convolveImage(copy_image);
-        PIXMAP = convolved_image.pixmap;
+        convolveImage();
         drawImage();
     }
 }
@@ -320,7 +390,7 @@ void flipFilterXandY() {
         for (int col = 0; col < FILTER_SIZE; col++) {
             FILTER[row][col] = temp_filter[row][col];
         }
-    
+
     delete temp_filter;
 }
 
@@ -341,7 +411,7 @@ int main(int argc, char *argv[]) {
         }
         cout << endl;
     }
-//    Image original_image = readImage(argv[2]);
-//    PIXMAP = original_image.pixmap;
-//    openGlInit(argc, argv);
+    Image original_image = readImage(argv[2]);
+    PIXMAP = original_image.pixmap;
+    openGlInit(argc, argv);
 }
