@@ -1,9 +1,9 @@
 /*
- * Program description: Creates an alphamask of an image
+ * Program description: Convolves an image by a specified kernal.
  *
  * Author: Austin Brennan - awbrenn@g.clemson.edu
  *
- * Date: October 2, 2014
+ * Date: October 13, 2014
  *
  * Other information: Check README for more information
  *
