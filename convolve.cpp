@@ -32,10 +32,13 @@ struct pixel {
 int IMAGE_HEIGHT;
 int IMAGE_WIDTH;
 pixel **PIXMAP;
+pixel **ORIGINAL_IMAGE;
 char *OUTPUT_FILE = NULL;
 int FILTER_SIZE;
 float **FILTER;
 
+
+// Image Class
 class Image {
 public:
     int height;
@@ -45,6 +48,7 @@ public:
     Image(int, int);
 };
 
+// Constructore with pixmap size
 Image::Image(int x, int y) {
     width = x;
     height = y;
@@ -100,6 +104,10 @@ Image convertVectorToImage (vector<unsigned char> vector_pixels, int channels) {
     return image;
 }
 
+
+/* Flips image verticaly
+ *
+ */
 pixel ** flipImageVertical(pixel **pixmap_vertical_flip) {
     for (int row = IMAGE_HEIGHT-1; row >= 0; row--)
         for (int col = 0; col < IMAGE_WIDTH; col++) {
@@ -177,6 +185,10 @@ void initializeFilterMap(float ** &filter_map) {
         filter_map[i] = filter_map[i - 1] + FILTER_SIZE;
 }
 
+
+/*  Adds together the values of a filter
+    Used for calculating the pixel value of the center of a kernal
+ */
 float sumFilterMapValues(float ** &filter) {
     float sum_of_filter_values = 0.0;
 
@@ -188,6 +200,8 @@ float sumFilterMapValues(float ** &filter) {
     return sum_of_filter_values;
 }
 
+
+// Calculates the correct kernal values on a specified channel
 void calculateFilterMap(float ** &filter_map, int filter_range, pixel **pixmap, int pixmap_row, int pixmap_col, int channel) {
     int offset_pixmap_row, offset_pixmap_col;
 
@@ -210,6 +224,8 @@ void calculateFilterMap(float ** &filter_map, int filter_range, pixel **pixmap, 
     }
 }
 
+
+// convolves a pixmap with a the global FILTER
 void convolveImage() {
     pixel ** convolved_pixmap;
 
@@ -254,6 +270,17 @@ void convolveImage() {
     free(convolved_pixmap);
 }
 
+
+// Restores the image to it's original
+void restoreOriginalImage() {
+    for (int row = 0; row < IMAGE_HEIGHT; row++) {
+        for (int col = 0; col < IMAGE_HEIGHT; col++) {
+            PIXMAP[row][col] = ORIGINAL_IMAGE[row][col];
+        }
+    }
+}
+
+
 /* Key press handler
  * input	- Handled by opengl, because this is a callback function.
  * output	- None
@@ -275,15 +302,16 @@ void handleKey(unsigned char key, int x, int y) {
         exit(0);
     }
     else if (key == 'c') {
-//        Image copy_image(IMAGE_WIDTH, IMAGE_HEIGHT);
-//
-//        delete copy_image.pixmap;
-//        copy_image.pixmap = PIXMAP;
-
         convolveImage();
         drawImage();
     }
+    else if (key == 'r') {
+        restoreOriginalImage();
+        drawImage();
+    }
+
 }
+
 
 /* Initialize opengl
  * input	- command line arguments
@@ -318,6 +346,8 @@ void openGlInit(int argc, char* argv[]) {
     glutMainLoop();
 }
 
+
+// Reads a filter from a file
 void readFilter(char *filter_filename) {
     FILE * pFile;
     pFile = fopen (filter_filename, "r");
@@ -340,6 +370,10 @@ void readFilter(char *filter_filename) {
     fclose(pFile);
 }
 
+
+/*  Finds the maximum of two floating point numbers.
+    If the numbers are equal maximum returns a.
+ */
 float maximum(float a, float b) {
     if (a < b)
         return b;
@@ -349,6 +383,10 @@ float maximum(float a, float b) {
     return a;
 }
 
+
+/*  Calculates a scale factor.
+    Divides the filter by the calculated scale factor.
+ */
 void normalizeFilter() {
     float scale_factor, filter_value, sum_of_negative_values = 0, sum_of_posotive_values = 0;
 
@@ -372,6 +410,8 @@ void normalizeFilter() {
         }
 }
 
+
+// Flips a kernal both horizontally and vertically
 void flipFilterXandY() {
     float **temp_filter;
 
@@ -405,13 +445,22 @@ int main(int argc, char *argv[]) {
     normalizeFilter();
     flipFilterXandY();
 
-    for (int row = 0; row < FILTER_SIZE; row++) {
-        for (int col = 0; col < FILTER_SIZE; col++) {
-            cout << FILTER[row][col] << " ";
-        }
-        cout << endl;
-    }
     Image original_image = readImage(argv[2]);
     PIXMAP = original_image.pixmap;
+
+
+    // save the pixel information of the original image
+    ORIGINAL_IMAGE = new pixel *[IMAGE_HEIGHT];
+    ORIGINAL_IMAGE[0] = new pixel[IMAGE_WIDTH * IMAGE_HEIGHT];
+
+    for (int i = 1; i < IMAGE_HEIGHT; i++)
+        ORIGINAL_IMAGE[i] = ORIGINAL_IMAGE[i - 1] + IMAGE_WIDTH;
+
+    for (int row = 0; row < IMAGE_HEIGHT; row++) {
+        for (int col = 0; col < IMAGE_HEIGHT; col++) {
+            ORIGINAL_IMAGE[row][col] = PIXMAP[row][col];
+        }
+    }
+
     openGlInit(argc, argv);
 }

@@ -1,0 +1,55 @@
+Experimentation with convolution:
+
+1)
+
+NOTE:
+First I converted squares.png to an rgb color space in Photoshop (c) <- gotta include that lol
+
+experiment: squares.png with bell9.filt
+output:     squares_bell9.png
+result:     I noticed that this filter blurred the edges of the square very evenly
+
+experiment: squares.png with box9.filt
+output:     squares_box9.png
+result:     This filter blurred the edges of the square with less of even of a blur.
+            The corners of the square had a triangular artifact where it looked like
+            the blur was overlapping of the two adjacent sides.
+
+experiment: squares.png with tent9.filt
+output:     squares_tent9.png
+result:     This filter was very similar to the bell filter. There was a very even blur among
+            all the edges. And they all lived happily ever after :)
+
+2)
+
+experiment: brushes.png with pulse.filt
+output:     brushes_pulse.png
+result:     Seemed to blur the image and add some noise to it as well
+
+experiment: brushes.png with tent.filt
+output:     brushes_tent.png
+result:     It blurred the image slightly
+
+experiment: brushes.png with hp.filt
+output:     brushes_hp.png
+result:     This filter highlighted the edges of the image
+
+experiment: brushes.png with sobol-horiz.filt
+output:     brushes_sobol-horiz.png
+result:     Highlighted the vertical lines in the image
+
+experiment: brushes.png with sobol-vert.filt
+output:     brushes_sobol-vert.png
+result:     Highlighted the horizontal lines in the image
+
+
+3)
+
+experiment: brushes.png with myfilt1.filt
+output:     myfilt1.png
+result:     Sharpened the image and darkened it.
+
+experiment: brushes.png with myfilt2.filt
+output:     myfilt2.png
+result:
+
