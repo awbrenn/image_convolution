@@ -1,0 +1,43 @@
+Author:   Austin Brennan
+Email:    awbrenn@g.clemson.edu
+Class:    CPSC 3220 - Levine
+Due Date: October 13th, 2014
+
+----
+filt
+----
+
+Program Description:
+    The program takes an image and a filter specified by [filter].filt and calculates
+    a convolution of the filter on the specified image.
+
+Compilation:
+    $> make
+
+Use Cases:
+    $> filt filter.filt input.img
+    - Displays the input image in an opengl window
+    - Press 'c' to convolve the image by the specified filter [filter.filt]
+    - Press 'r' to restore the image to it's original contents
+    $> filt filter.filt input.img output.img
+    - same functionality as above except 'w' writes the image in the opengl
+      window to output.img
+
+Known Bugs:
+    - Does not renormalize pixel values when they are negative.
+      If I had more time to work on this I would tackle this issue.
+
+Boundary Handling:
+    - Sets pixels that lie outside of the image boundaries to black.
+      That is r = g = b = 0.0
+    - This is handled in the calculateFilterMap.
+
+Experimentation:
+    - For experimentation look in experimentation folder
+    - Experimentation.txt contains all of my observations
+    - the images folder has all of my resulting images
+    - the filter folder has the filters I made to experiment with.
+
+Additional Information:
+    - Nothing in the advanced section is implemented.
+    - test folder has a test filter and brushes.png for testing
